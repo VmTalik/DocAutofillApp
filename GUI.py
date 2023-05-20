@@ -1,4 +1,5 @@
-from tkinter import Frame, Tk, Button, GROOVE, LEFT, Label, LabelFrame, Toplevel, Entry
+from tkinter import Frame, Tk, Button, GROOVE, LEFT, Label, LabelFrame, Toplevel, Entry, BOTTOM
+from tkinter import messagebox
 from tkinter import filedialog as fd
 from PIL import Image as PILImage
 from PIL import ImageTk
@@ -27,8 +28,6 @@ class Window:
         passport_frame.pack(anchor="w")
         transport_frame = Frame(self.root)
         transport_frame.pack(anchor="w")
-        # fill_frame = Frame(self.root)
-        # fill_frame.pack(anchor="w")
         output_frame = LabelFrame(self.root, text="Загруженное изображение", font=("Arial", 10, "bold"))
         output_frame.pack(anchor="e", pady=20)
         Label(passport_frame, width=15, height=1, text="Паспорт РФ", font=("Arial", 12, "bold")).pack(side=LEFT)
@@ -106,9 +105,9 @@ class Window:
         results_two_pages = [result_up, result_down]
         img_proc.insert_data_word(results_two_pages)
 
-    @staticmethod
-    def fill_contract():
+    def fill_contract(self):
         core.ImageProcessing.render_word()
+        self.message_db(True, 'В договор внесена информация')
 
     @staticmethod
     def check_filling():
@@ -121,8 +120,7 @@ class Window:
             print('Загружено только ТС без паспорта! ')
             os.startfile(f'all_doc\GNZ_result.docx', 'edit')
 
-    @staticmethod
-    def add_contract_to_db():
+    def add_contract_to_db(self):
         contract_dict = core.ImageProcessing.context
         if len(contract_dict) > 6:
             name = contract_dict["name"]
@@ -132,7 +130,19 @@ class Window:
             series = contract_dict["series"]
             number = contract_dict["number"]
             word_name = f'all_doc\GNZ_result{series}{number}.docx'
-            db.insert_data(name, surname, patronymic, series, number, date, word_name)
+            if db.insert_data(name, surname, patronymic, series, number, date, word_name):
+                self.message_db(True, "Договор успешно загружен в БД !")
+            else:
+                self.message_db(False, "Ошибка при загрузке данных в БД !")
+        else:
+            self.message_db(False, "Ошибка при загрузке данных в БД, Вы загрузили не все документы !")
+
+    @staticmethod
+    def message_db(fl, message):
+        if fl is True:
+            messagebox.showinfo("", message)
+        else:
+            messagebox.showerror("", message)
 
     def contract_selection(self):
         ChildWindow(self.root)
@@ -141,8 +151,6 @@ class Window:
         self.label.configure(image=self.output_image, height=550, width=450)
 
     def put_tick(self, par: str):
-        # self.count_passport = 0
-        # self.count_transport = 0
         if par == 'passport':
             self.check_passport.configure(image=self.output_tick)
             self.count_passport += 1
@@ -170,42 +178,59 @@ class ChildWindow:
         self.draw_widgets()
 
     def draw_widgets(self):
-        Label(self.root, text="Отбор по ФИО", font=("Arial", 14, "bold")).grid(row=1, column=3, pady=8)
-        Label(self.root, width=15, height=1, text="ФИО", font=("Arial", 12, "bold")).grid(row=2, column=0, ipady=4)
-        self.full_name = Entry(self.root, width=35, bd=4, font=("Arial", 12, "bold"))
-        self.full_name.grid(row=3, column=1, ipady=4)
-        Button(self.root, width=15, height=1, text="Отбор", font=("Arial", 12, "bold"),
-               relief=GROOVE, bd=8, command=self.get_full_name).grid(row=3, column=4)
-
-        Label(self.root, text="Отбор по дате создания", font=("Arial", 14, "bold")).grid(row=6, column=3, pady=10)
-        Label(self.root, width=15, height=2, text="Дата создания\n(yyyy-mm-dd)", font=("Arial", 12, "bold")).grid(row=8,
-                                                                                                                  column=0,
-                                                                                                                  ipady=4)
-        self.date = Entry(self.root, width=35, bd=4, font=("Arial", 12, "bold"))
-        self.date.grid(row=9, column=1, ipady=4)
-        Button(self.root, width=15, height=1, text="Отбор", font=("Arial", 12, "bold"),
-               relief=GROOVE, bd=8, command=self.get_date).grid(row=9, column=4)
+        full_name_frame = Frame(self.root)
+        full_name_frame.pack(anchor="center", pady=80)
+        Label(full_name_frame, text="Отбор по ФИО", font=("Arial", 14, "bold")).pack()
+        Label(full_name_frame, width=15, height=1, text="ФИО", font=("Arial", 12, "bold")).pack(side=LEFT, anchor='n',
+                                                                                                pady=15)
+        self.full_name = Entry(full_name_frame, width=39, bd=7, font=("Arial", 12, "bold"))
+        self.full_name.pack(side=LEFT, anchor='n', pady=15)
+        Button(full_name_frame, width=15, height=1, text="Отбор", font=("Arial", 12, "bold"),
+               relief=GROOVE, bd=8, command=self.get_full_name).pack(side=LEFT, anchor='n', pady=15, padx=15)
+        date_frame = Frame(self.root)
+        date_frame.pack(anchor="center")
+        Label(date_frame, text="Отбор по дате создания", font=("Arial", 14, "bold")).pack()
+        Label(date_frame, width=15, height=2, text="Дата создания\n(yyyy-mm-dd)", font=("Arial", 12, "bold")).pack(
+            side=LEFT, anchor='n', pady=15)
+        self.date = Entry(date_frame, width=39, bd=7, font=("Arial", 12, "bold"))
+        self.date.pack(side=LEFT, anchor='n', pady=15)
+        Button(date_frame, width=15, height=1, text="Отбор", font=("Arial", 12, "bold"),
+               relief=GROOVE, bd=8, command=self.get_date).pack(side=LEFT, anchor='n', pady=15, padx=15)
+        output_frame = Frame(self.root)
+        output_frame.pack(anchor="center", pady=120)
+        Label(output_frame, text='Результат:', font=("Arial", 13, "bold")).pack()
+        self.results_db = Label(output_frame, font=("Arial", 12, "bold"), width=60, pady=30)
+        self.results_db.pack(side=LEFT, anchor='center')
 
     def get_full_name(self):
         full_name = self.full_name.get().upper()
         print(full_name)
         full_name_lst = full_name.split()
         if len(full_name_lst) != 3:
-            print('Ошибка ввода')
+            Window.message_db(False, "Ошибка ввода ФИО")
+
         else:
             name = full_name_lst[1]
             surname = full_name_lst[0]
             patronymic = full_name_lst[2]
-            self.get_contract_from_db('', name, surname, patronymic)
+            if self.get_contract_from_db('', name, surname, patronymic):
+                self.results_db.configure(text="Договор в БД найден и сохранен в папку main\selected_doс_db",
+                                          fg='green')
+            else:
+                self.results_db.configure(text="Договор с таким ФИО в БД не найден !", fg='red')
 
     def get_date(self):
         date = self.date.get()
         print(date)
-        self.get_contract_from_db(date)
+        if self.get_contract_from_db(date):
+            self.results_db.configure(text="Договор в БД найден и сохранен в папку main\selected_doс_db", fg='green')
+
+        else:
+            self.results_db.configure(text="Договор с такой датой создания в БД не найден !", fg='red')
 
     @staticmethod
     def get_contract_from_db(date, name='', surname='', patronymic=''):
         if date:
-            db.read_data(date)
+            return db.read_data(date)
         else:
-            db.read_data('', name, surname, patronymic)
+            return db.read_data('', name, surname, patronymic)
