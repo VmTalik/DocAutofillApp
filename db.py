@@ -35,8 +35,10 @@ def insert_data(name, surname, patronymic, series, number, date, word_name):
         sqlite_connection.commit()
         print("Данные успешно внесены в БД")
         cursor.close()
+        return True
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+        return False
     finally:
         if sqlite_connection:
             sqlite_connection.close()
@@ -64,7 +66,6 @@ def read_data(date, name='', surname='', patronymic=''):
         cursor = sqlite_connection.cursor()
         print("Подключен к SQLite")
         if date:
-            print('дата2')
             sql_fetch_query = query2
             cursor.execute(sql_fetch_query, (date,))
         else:
@@ -85,9 +86,13 @@ def read_data(date, name='', surname='', patronymic=''):
             contract_path = os.path.join("selected_doс_db", word_name)
             write_to_file(contract, contract_path)
         cursor.close()
+        if record:
+            os.startfile(contract_path, 'edit')
+            return True
 
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
+        return False
     finally:
         if sqlite_connection:
             sqlite_connection.close()
